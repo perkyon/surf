@@ -34,6 +34,17 @@ spray_schedule = {
     "Цикас": {"interval": 2, "message": "Открыть и проветрить укрытую пальму (Цикас) на улице"}
 }
 
+def is_weekend():
+    return datetime.now().weekday() >= 5  # Суббота и Воскресенье
+
+def is_working_hour():
+    now = datetime.now()
+    hour = now.hour
+    if is_weekend():
+        return 9 <= hour < 23
+    else:
+        return 7 <= hour < 23
+
 # Функция для отправки напоминаний о поливе
 async def send_watering_reminder(chat_id):
     now = datetime.now()
@@ -54,52 +65,49 @@ async def send_daily_task_notification(chat_id):
             message += f"• {task}\n"
         await bot.send_message(chat_id, message)
 
-async def scheduled_watering_notifications(chat_id):
-    while True:
-        now = datetime.now()
-        if 7 <= now.hour < 23:
-            await send_watering_reminder(chat_id)
-        # Пауза в 1 час (3600 секунд)
-        await asyncio.sleep(3600)
-
-
-# Функция для отправки уведомления о необходимости написать отчет
-async def send_report_reminder(chat_id):
-    await bot.send_message(chat_id, "Пора написать отчет о выполнении задач на сегодня!")
-
-# Напоминалка каждые 45 минут
-async def send_cleanliness_reminder(chat_id):
-    while True:
-        now = datetime.now()
-        if 7 <= now.hour < 23:
-            await bot.send_message(chat_id, 'Нужно проверить чистоту кофейни')
-        # Пауза в 45 минут (2700 секунд)
-        await asyncio.sleep(2700)
-
-# Определяем задачи по расписанию
 async def scheduled_task_notifications(chat_id):
     while True:
         now = datetime.now()
-        if now.hour == 8 and now.minute == 0:
-            await send_daily_task_notification(chat_id)
-        elif now.hour == 15 and now.minute == 0:
-            await send_report_reminder(chat_id)
+        if is_weekend():
+            if (now.hour == 10 and now.minute == 0) or (now.hour == 18 and now.minute == 0):
+                await send_daily_task_notification(chat_id)
+        else:
+            if (now.hour == 8 and now.minute == 0) or (now.hour == 17 and now.minute == 0):
+                await send_daily_task_notification(chat_id)
         await asyncio.sleep(60)
 
-# Напоминание о поливе
-async def scheduled_plant_care_notifications(chat_id):
+async def scheduled_cleanliness_reminders(chat_id):
     while True:
-        now = datetime.now()
-        if now.hour == 9 and now.minute == 0:  # Например, уведомления о поливе в 9 утра
-            await send_watering_reminder(chat_id)
+        if is_working_hour():
+            await bot.send_message(chat_id, 'Нужно проверить чистоту кофейни')
+            await asyncio.sleep(7200)  # Пауза в 2 часа
+        else:
+            await asyncio.sleep(60)  # Пауза в минуту вне рабочего времени
+
+async def send_report_reminder(chat_id):
+    now = datetime.now()
+    if is_weekend():
+        if (now.hour == 16 and now.minute == 0) or (now.hour == 23 and now.minute == 0):
+            await bot.send_message(chat_id, "Пора написать отчет о выполнении задач на сегодня!")
+    else:
+        if (now.hour == 15 and now.minute == 30) or (now.hour == 23 and now.minute == 0):
+            await bot.send_message(chat_id, "Пора написать отчет о выполнении задач на сегодня!")
+
+async def scheduled_report_reminders(chat_id):
+    while True:
+        await send_report_reminder(chat_id)
         await asyncio.sleep(60)
+
+# Обработчик команды /id
+@dp.message_handler(commands=['id'])
+async def send_chat_id(message: types.Message):
+    chat_id = message.chat.id
+    await message.reply(f"ID этого чата: {chat_id}")
 
 if __name__ == '__main__':
     chat_id = '-1001960802362'
     loop = asyncio.get_event_loop()
     loop.create_task(scheduled_task_notifications(chat_id))
-    loop.create_task(send_cleanliness_reminder(chat_id))
-    loop.create_task(scheduled_plant_care_notifications(chat_id))
-    loop.create_task(scheduled_watering_notifications(chat_id))  # Добавляем новую задачу
+    loop.create_task(scheduled_cleanliness_reminders(chat_id))
+    loop.create_task(scheduled_report_reminders(chat_id))
     executor.start_polling(dp, skip_updates=True)
-
