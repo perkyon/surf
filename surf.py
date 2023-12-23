@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import locale
@@ -129,7 +129,7 @@ async def send_help_message(message: types.Message):
     await message.reply(help_message)
 
 if __name__ == '__main__':
-    chat_id = 'YOUR_CHAT_ID'
+    chat_id = '-1001960802362'
     loop = asyncio.get_event_loop()
     loop.create_task(scheduled_task_notifications(chat_id))
     loop.create_task(scheduled_cleanliness_reminders(chat_id))
