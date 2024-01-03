@@ -1,22 +1,21 @@
 # Файл который мы должны запускать
 import asyncio
+import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-import logging
-from config import BOT_TOKEN
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Command, state
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
 import commands
 import schedules
 import product
-from aiogram import Bot, Dispatcher, types
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram import types, Dispatcher
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
+from config import BOT_TOKEN
+
+import locale
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,7 +25,6 @@ dp = Dispatcher(bot, storage=storage)
 
 commands.register_handlers_common(dp)
 product.register_handlers_product(dp)  # Регистрация обработчиков из product.py
-
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
