@@ -5,11 +5,11 @@ from datetime import datetime
 
 # Настройка доступа к Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("path_to_your_credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/ilafomincev/Desktop/surf/surf bot/certain-router-410617-46b02da6ba95.json", scope)
 client = gspread.authorize(creds)
 
 # Открытие таблицы
-sheet = client.open("График работы SC x post").sheet1
+sheet = client.open("График работы SC x post").worksheet('Январчик')
 
 # Получение данных
 rows = sheet.get_all_records()

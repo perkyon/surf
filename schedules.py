@@ -11,8 +11,10 @@ from work_schedule import is_working_hour
 async def send_watering_reminder(bot: Bot, chat_id: str):
     now = datetime.now()
     for plant, info in spray_schedule.items():
-        if (now - info["last_watered"]).days >= info["interval"]:
+        # Проверяем, пришло ли время для полива
+        if now >= info["last_watered"] + timedelta(days=info["interval"]):
             await bot.send_message(chat_id, info["message"])
+            # Обновляем время последнего полива
             info["last_watered"] = now
 
 # Функция для отправки ежедневных задач
@@ -36,11 +38,10 @@ async def scheduled_cleanliness_reminders(bot: Bot, chat_id: str):
 
 # Функции проверки времени для отправки напоминаний
 def should_send_watering_reminder(now: datetime) -> bool:
-    for plant, info in spray_schedule.items():
-        last_watered = now - timedelta(days=info["interval"])
-        if last_watered.date() == now.date():
-            return True
-    return False
+    # Задаем время напоминания
+    scheduled_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
+    # Проверяем, что текущее время соответствует времени запланированного напоминания
+    return now >= scheduled_time and now < scheduled_time + timedelta(minutes=1)
 
 def should_send_daily_task_notification(now: datetime) -> bool:
     current_time_str = now.strftime("%H:%M")
