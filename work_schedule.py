@@ -18,6 +18,14 @@ daily_task_times = {
     "weekend": ["09:00", "16:30", "23:00"]   # В выходные дни
 }
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def is_working_hour():
+    now = datetime.now()
+    logging.info(f"Текущее время: {now}")
+
 # График работы
 def is_working_hour():
     now = datetime.now()

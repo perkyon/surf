@@ -4,14 +4,16 @@ from aiogram import Bot
 from work_schedule import report_reminder_times, cleanliness_check_intervals, daily_task_times
 from plants import spray_schedule
 from tasks import weekly_tasks
+from work_schedule import is_working_hour
+
 
 # Функция для отправки напоминаний о поливе
 async def send_watering_reminder(bot: Bot, chat_id: str):
     now = datetime.now()
     for plant, info in spray_schedule.items():
-        last_watered = now - timedelta(days=info["interval"])
-        if last_watered.date() == now.date():
+        if (now - info["last_watered"]).days >= info["interval"]:
             await bot.send_message(chat_id, info["message"])
+            info["last_watered"] = now
 
 # Функция для отправки ежедневных задач
 async def send_daily_task_notification(bot: Bot, chat_id: str):
@@ -70,6 +72,13 @@ async def scheduler(bot: Bot, chat_id: str):
             await scheduled_cleanliness_reminders(bot, chat_id)
 
         await asyncio.sleep(60)  # Пауза в 1 минуту
+
+def should_send_cleanliness_reminder(now: datetime) -> bool:
+    if not is_working_hour():
+        return False
+    current_time = (now.hour, now.minute)
+    current_day_type = "weekend" if now.weekday() >= 5 else "weekday"
+    return current_time in cleanliness_check_intervals[current_day_type]
 
 def start_scheduled_tasks(loop: asyncio.AbstractEventLoop, bot: Bot):
     chat_id = '-1001960802362'  # ID чата для отправки напоминаний
