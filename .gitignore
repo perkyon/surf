@@ -1,2 +1,4 @@
 .DS_Store
-myenv/
+myenv
+chat_id.py
+__pycache__
