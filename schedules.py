@@ -9,7 +9,6 @@ from work_schedule import is_working_hour
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from main import dp
 
-
 # Функция для отправки напоминаний о поливе
 async def send_watering_reminder(bot: Bot, chat_id: str):
     now = datetime.now()
@@ -26,8 +25,15 @@ async def send_daily_task_notification(bot: Bot, chat_id: str):
     current_day = now.strftime("%A").lower()
     tasks_for_today = weekly_tasks.get(current_day, [])
     if tasks_for_today:
-        message = f"Сегодня {current_day}, задачи:\n" + "\n".join(f"• {task}" for task in tasks_for_today)
-        await bot.send_message(chat_id, message)
+        markup = InlineKeyboardMarkup()
+        for task in tasks_for_today:
+            button_text = f"{'✅' if task['completed'] else '❌'} {task['task']}"
+            callback_data = f"task_toggle_{current_day}_{task['task']}"
+            markup.add(InlineKeyboardButton(button_text, callback_data=callback_data))
+        
+        message = f"Сегодня {current_day}, задачи:\n"
+        await bot.send_message(chat_id, message, reply_markup=markup)
+
 
 # Функция для отправки напоминаний об отчетах
 async def send_report_reminder(bot: Bot, chat_id: str):
@@ -94,14 +100,10 @@ async def toggle_task_status(callback_query: types.CallbackQuery):
     day = data[2]
     task_text = '_'.join(data[3:])
 
-    # Измените статус задачи (поменяйте True на False и наоборот)
     for task_info in weekly_tasks[day]:
         if task_info["task"] == task_text:
             task_info["completed"] = not task_info.get("completed", False)
 
-    # Обновите сообщение с задачами (повторно отправьте сообщение)
-    await weekly_tasks(callback_query.message.chat.id)
-
-    # Ответьте на callback, чтобы убрать индикатор загрузки
+    await send_daily_task_notification(callback_query.bot, callback_query.message.chat.id)
     await callback_query.answer()
 

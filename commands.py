@@ -26,6 +26,8 @@ async def send_help_message(message: types.Message):
     )
     await message.reply(help_message)
 
+
+
 def register_handlers_common(dp: Dispatcher):
     dp.register_message_handler(send_chat_id, commands=['id'])
     dp.register_message_handler(send_welcome_message, commands=['start'])
