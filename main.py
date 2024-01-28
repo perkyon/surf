@@ -10,7 +10,6 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 import commands
 import schedules
-import product
 
 from config import BOT_TOKEN
 
@@ -24,7 +23,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot, storage=storage)
 
 commands.register_handlers_common(dp)
-product.register_handlers_product(dp)  # Регистрация обработчиков из product.py
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

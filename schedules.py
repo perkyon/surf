@@ -1,10 +1,13 @@
 import asyncio
+from aiogram import types
 from datetime import datetime, timedelta
 from aiogram import Bot
 from work_schedule import report_reminder_times, cleanliness_check_intervals, daily_task_times
 from plants import spray_schedule
 from tasks import weekly_tasks
 from work_schedule import is_working_hour
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from main import dp
 
 
 # Функция для отправки напоминаний о поливе
@@ -84,3 +87,21 @@ def should_send_cleanliness_reminder(now: datetime) -> bool:
 def start_scheduled_tasks(loop: asyncio.AbstractEventLoop, bot: Bot):
     chat_id = '-1001960802362'  # ID чата для отправки напоминаний
     loop.create_task(scheduler(bot, chat_id))
+
+@dp.callback_query_handler(lambda query: query.data.startswith('task_toggle_'))
+async def toggle_task_status(callback_query: types.CallbackQuery):
+    data = callback_query.data.split('_')
+    day = data[2]
+    task_text = '_'.join(data[3:])
+
+    # Измените статус задачи (поменяйте True на False и наоборот)
+    for task_info in weekly_tasks[day]:
+        if task_info["task"] == task_text:
+            task_info["completed"] = not task_info.get("completed", False)
+
+    # Обновите сообщение с задачами (повторно отправьте сообщение)
+    await weekly_tasks(callback_query.message.chat.id)
+
+    # Ответьте на callback, чтобы убрать индикатор загрузки
+    await callback_query.answer()
+
