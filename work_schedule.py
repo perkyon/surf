@@ -1,4 +1,5 @@
-from datetime import datetime
+from main import datetime
+from main import logging
 
 # Время для напоминаний о написании отчетов
 report_reminder_times = {
@@ -17,10 +18,6 @@ daily_task_times = {
     "weekday": ["07:30", "15:30", "23:00"],  # В будние дни
     "weekend": ["09:00", "16:30", "23:00"]   # В выходные дни
 }
-
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 def is_working_hour():
     now = datetime.now()

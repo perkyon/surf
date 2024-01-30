@@ -1,13 +1,16 @@
-import asyncio
-from aiogram import types
-from datetime import datetime, timedelta
+from main import dp
+from main import datetime, timedelta
+from main import asyncio
+from main import types
+from main import Bot
 from aiogram import Bot
 from work_schedule import report_reminder_times, cleanliness_check_intervals, daily_task_times
 from plants import spray_schedule
 from tasks import weekly_tasks
 from work_schedule import is_working_hour
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from main import dp
+
+
 
 # Функция для отправки напоминаний о поливе
 async def send_watering_reminder(bot: Bot, chat_id: str):
@@ -26,14 +29,18 @@ async def send_daily_task_notification(bot: Bot, chat_id: str):
     tasks_for_today = weekly_tasks.get(current_day, [])
     if tasks_for_today:
         markup = InlineKeyboardMarkup()
+        message = f"Сегодня {current_day}, задачи:\n"  # Начало формирования сообщения
         for task in tasks_for_today:
+            # Добавление кнопок для каждой задачи
             button_text = f"{'✅' if task['completed'] else '❌'} {task['task']}"
             callback_data = f"task_toggle_{current_day}_{task['task']}"
             markup.add(InlineKeyboardButton(button_text, callback_data=callback_data))
-        
-        message = f"Сегодня {current_day}, задачи:\n"
-        await bot.send_message(chat_id, message, reply_markup=markup)
 
+            # Добавление информации о задаче в текст сообщения
+            message += f"{task['task']}\n"
+
+        # Отправка сообщения с сформированным списком задач и клавиатурой
+        await bot.send_message(chat_id, message, reply_markup=markup)
 
 # Функция для отправки напоминаний об отчетах
 async def send_report_reminder(bot: Bot, chat_id: str):
@@ -44,6 +51,7 @@ async def send_report_reminder(bot: Bot, chat_id: str):
 async def scheduled_cleanliness_reminders(bot: Bot, chat_id: str):
     message = "Нужно проверить чистоту кофейни"
     await bot.send_message(chat_id, message)
+
 
 # Функции проверки времени для отправки напоминаний
 def should_send_watering_reminder(now: datetime) -> bool:
@@ -106,4 +114,8 @@ async def toggle_task_status(callback_query: types.CallbackQuery):
 
     await send_daily_task_notification(callback_query.bot, callback_query.message.chat.id)
     await callback_query.answer()
+
+async def send_long_message(bot: Bot, chat_id: str, text: str, split_length: int = 4000):
+    for start in range(0, len(text), split_length):
+        await bot.send_message(chat_id, text[start:start+split_length])
 
