@@ -1,13 +1,14 @@
 import asyncio
+import logging  
 from aiogram import Bot
 from datetime import datetime
 from data import spray_schedule, weekly_tasks, report_reminder_times, cleanliness_check_intervals, daily_task_times
 from utils import (should_send_watering_reminder, should_send_daily_task_notification,
                    should_send_report_reminder, should_send_cleanliness_reminder, send_message)
-import logging  # Добавьте импорт модуля logging
 
 # Настройка уровня логирования
 logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 async def start_scheduled_tasks(bot: Bot, chat_id: str):
     logging.info("Запуск запланированных задач")
@@ -17,6 +18,7 @@ async def start_scheduled_tasks(bot: Bot, chat_id: str):
         # Напоминание о поливе
         tasks = should_send_watering_reminder(now, spray_schedule)
         for task in tasks:
+            logging.info(f"Обновление времени прошло успешно: {task['message']}")  # Исправление здесь
             await send_message(bot, chat_id, task["message"])
             task["last_watered"] = now  # Обновляем время последнего полива
         

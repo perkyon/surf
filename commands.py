@@ -1,6 +1,8 @@
 from aiogram import types
 import logging
 
+logging.basicConfig(level=logging.INFO)
+
 async def send_chat_id(message: types.Message):
     logging.info("Обрабатывается команда /id")
     await message.reply(f"ID этого чата: {message.chat.id}")

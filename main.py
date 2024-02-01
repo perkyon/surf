@@ -6,8 +6,9 @@ from config import BOT_TOKEN
 from commands import register_handlers_common
 from schedules import start_scheduled_tasks
 
-# Настройка уровня логирования
+# Настройка уровня логирования INFO
 logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 async def send_welcome_message(message: types.Message):
     # Добавьте логирование в функции send_welcome_message
