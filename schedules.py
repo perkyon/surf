@@ -1,121 +1,36 @@
-from main import dp
-from main import datetime, timedelta
-from main import asyncio
-from main import types
-from main import Bot
+import asyncio
 from aiogram import Bot
-from work_schedule import report_reminder_times, cleanliness_check_intervals, daily_task_times
-from plants import spray_schedule
-from tasks import weekly_tasks
-from work_schedule import is_working_hour
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime
+from data import spray_schedule, weekly_tasks, report_reminder_times, cleanliness_check_intervals, daily_task_times
+from utils import (should_send_watering_reminder, should_send_daily_task_notification,
+                   should_send_report_reminder, should_send_cleanliness_reminder, send_message)
+import logging  # Добавьте импорт модуля logging
 
+# Настройка уровня логирования
+logging.basicConfig(level=logging.INFO)
 
-
-# Функция для отправки напоминаний о поливе
-async def send_watering_reminder(bot: Bot, chat_id: str):
-    now = datetime.now()
-    for plant, info in spray_schedule.items():
-        # Проверяем, пришло ли время для полива
-        if now >= info["last_watered"] + timedelta(days=info["interval"]):
-            await bot.send_message(chat_id, info["message"])
-            # Обновляем время последнего полива
-            info["last_watered"] = now
-
-# Функция для отправки ежедневных задач
-async def send_daily_task_notification(bot: Bot, chat_id: str):
-    now = datetime.now()
-    current_day = now.strftime("%A").lower()
-    tasks_for_today = weekly_tasks.get(current_day, [])
-    if tasks_for_today:
-        markup = InlineKeyboardMarkup()
-        message = f"Сегодня {current_day}, задачи:\n"  # Начало формирования сообщения
-        for task in tasks_for_today:
-            # Добавление кнопок для каждой задачи
-            button_text = f"{'✅' if task['completed'] else '❌'} {task['task']}"
-            callback_data = f"task_toggle_{current_day}_{task['task']}"
-            markup.add(InlineKeyboardButton(button_text, callback_data=callback_data))
-
-            # Добавление информации о задаче в текст сообщения
-            message += f"{task['task']}\n"
-
-        # Отправка сообщения с сформированным списком задач и клавиатурой
-        await bot.send_message(chat_id, message, reply_markup=markup)
-
-# Функция для отправки напоминаний об отчетах
-async def send_report_reminder(bot: Bot, chat_id: str):
-    message = "Пора написать отчет о выполнении задач на сегодня!"
-    await bot.send_message(chat_id, message)
-
-# Функция для отправки напоминаний о проверке чистоты
-async def scheduled_cleanliness_reminders(bot: Bot, chat_id: str):
-    message = "Нужно проверить чистоту кофейни"
-    await bot.send_message(chat_id, message)
-
-
-# Функции проверки времени для отправки напоминаний
-def should_send_watering_reminder(now: datetime) -> bool:
-    # Задаем время напоминания
-    scheduled_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
-    # Проверяем, что текущее время соответствует времени запланированного напоминания
-    return now >= scheduled_time and now < scheduled_time + timedelta(minutes=1)
-
-def should_send_daily_task_notification(now: datetime) -> bool:
-    current_time_str = now.strftime("%H:%M")
-    current_day_type = "weekend" if now.weekday() >= 5 else "weekday"
-    return current_time_str in daily_task_times[current_day_type]
-
-def should_send_report_reminder(now: datetime) -> bool:
-    current_time_str = now.strftime("%H:%M")
-    current_day_type = "weekend" if now.weekday() >= 5 else "weekday"
-    return current_time_str in report_reminder_times[current_day_type]
-
-def should_send_cleanliness_reminder(now: datetime) -> bool:
-    current_time = (now.hour, now.minute)
-    current_day_type = "weekend" if now.weekday() >= 5 else "weekday"
-    return current_time in cleanliness_check_intervals[current_day_type]
-
-# Планировщик для автоматической отправки напоминаний
-async def scheduler(bot: Bot, chat_id: str):
+async def start_scheduled_tasks(bot: Bot, chat_id: str):
+    logging.info("Запуск запланированных задач")
     while True:
         now = datetime.now()
 
-        if should_send_watering_reminder(now):
-            await send_watering_reminder(bot, chat_id)
-        if should_send_daily_task_notification(now):
-            await send_daily_task_notification(bot, chat_id)
-        if should_send_report_reminder(now):
-            await send_report_reminder(bot, chat_id)
-        if should_send_cleanliness_reminder(now):
-            await scheduled_cleanliness_reminders(bot, chat_id)
+        # Напоминание о поливе
+        tasks = should_send_watering_reminder(now, spray_schedule)
+        for task in tasks:
+            await send_message(bot, chat_id, task["message"])
+            task["last_watered"] = now  # Обновляем время последнего полива
+        
+        # Отправка ежедневных задач
+        task_message = should_send_daily_task_notification(now, weekly_tasks)
+        if task_message:
+            await send_message(bot, chat_id, task_message)
 
-        await asyncio.sleep(60)  # Пауза в 1 минуту
+        # Напоминание об отчетах
+        if should_send_report_reminder(now, report_reminder_times):
+            await send_message(bot, chat_id, "Пора написать отчет о выполнении задач на сегодня!")
 
-def should_send_cleanliness_reminder(now: datetime) -> bool:
-    if not is_working_hour():
-        return False
-    current_time = (now.hour, now.minute)
-    current_day_type = "weekend" if now.weekday() >= 5 else "weekday"
-    return current_time in cleanliness_check_intervals[current_day_type]
+        # Напоминание о проверке чистоты
+        if should_send_cleanliness_reminder(now, cleanliness_check_intervals):
+            await send_message(bot, chat_id, "Нужно проверить чистоту кофейни")
 
-def start_scheduled_tasks(loop: asyncio.AbstractEventLoop, bot: Bot):
-    chat_id = '-1001960802362'  # ID чата для отправки напоминаний
-    loop.create_task(scheduler(bot, chat_id))
-
-@dp.callback_query_handler(lambda query: query.data.startswith('task_toggle_'))
-async def toggle_task_status(callback_query: types.CallbackQuery):
-    data = callback_query.data.split('_')
-    day = data[2]
-    task_text = '_'.join(data[3:])
-
-    for task_info in weekly_tasks[day]:
-        if task_info["task"] == task_text:
-            task_info["completed"] = not task_info.get("completed", False)
-
-    await send_daily_task_notification(callback_query.bot, callback_query.message.chat.id)
-    await callback_query.answer()
-
-async def send_long_message(bot: Bot, chat_id: str, text: str, split_length: int = 4000):
-    for start in range(0, len(text), split_length):
-        await bot.send_message(chat_id, text[start:start+split_length])
-
+        await asyncio.sleep(60)  # Пауза в 60 секунд между проверками

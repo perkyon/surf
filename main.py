@@ -1,31 +1,33 @@
-# Файл который мы должны запускать
 import asyncio
 import logging
-from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command, state
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-
-import commands
-import schedules
-
 from config import BOT_TOKEN
+from commands import register_handlers_common
+from schedules import start_scheduled_tasks
 
-import locale
-locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
-
+# Настройка уровня логирования
 logging.basicConfig(level=logging.INFO)
 
-storage = MemoryStorage()
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot, storage=storage)
+async def send_welcome_message(message: types.Message):
+    # Добавьте логирование в функции send_welcome_message
+    logging.info("Обрабатывается команда /start")
+    welcome_message = "Приветственное сообщение"
+    await message.reply(welcome_message)
 
-commands.register_handlers_common(dp)
+async def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher(bot)
+
+    # Регистрация обработчиков команд
+    register_handlers_common(dp)
+
+    # Запуск запланированных задач с передачей chat_id
+    chat_id = '-1001960802362' 
+    await start_scheduled_tasks(bot, chat_id)
+    
+    # Запуск long polling
+    executor.start_polling(dp, skip_updates=True)
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    schedules.start_scheduled_tasks(loop, bot)
-    executor.start_polling(dp, skip_updates=True)
+    asyncio.run(main())
