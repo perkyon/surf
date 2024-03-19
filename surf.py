@@ -29,10 +29,26 @@ tasks = {
 }
 
 spray_schedule = {
-    "Юкка": {"interval": 2, "message": "Опрыскать Юкку"},
-    "Драцена": {"interval": 2, "message": "Проверить Драцену (Саня и Мия) и опрыскать по необходимости"},
-    "Цикас": {"interval": 2, "message": "Открыть и проветрить укрытую пальму (Цикас) на улице"}
+    "Юкка": {"interval": 2, "last_watered": datetime.now() - timedelta(days=2), "message": "Опрыскать Юкку"},
+    "Драцена": {"interval": 2, "last_watered": datetime.now() - timedelta(days=2), "message": "Проверить Драцену (Саня и Мия) и опрыскать по необходимости"},
+    "Цикас": {"interval": 2, "last_watered": datetime.now() - timedelta(days=2), "message": "Открыть и проветрить укрытую пальму (Цикас) на улице"}
 }
+
+async def send_watering_reminder(chat_id):
+    now = datetime.now()
+    for plant, info in spray_schedule.items():
+        if now >= info["last_watered"] + timedelta(days=info["interval"]):
+            message = info["message"]
+            await bot.send_message(chat_id, message)
+            # Обновляем дату последнего полива
+            info["last_watered"] = now
+
+# Добавляем выполнение send_watering_reminder в планировщик
+async def scheduled_watering_reminders(chat_id):
+    while True:
+        await send_watering_reminder(chat_id)
+        # Проверяем каждый час, достаточно ли этого для вашего случая
+        await asyncio.sleep(3600) 
 
 def is_weekend():
     return datetime.now().weekday() >= 5  # Суббота и Воскресенье
@@ -110,6 +126,7 @@ if __name__ == '__main__':
     loop.create_task(scheduled_task_notifications(chat_id))
     loop.create_task(scheduled_cleanliness_reminders(chat_id))
     loop.create_task(scheduled_report_reminders(chat_id))
+    loop.create_task(scheduled_watering_reminders(chat_id))
     executor.start_polling(dp, skip_updates=True)
 
 # закинуть апдейт кода и разобраться почему нет напоминалки с цветами
